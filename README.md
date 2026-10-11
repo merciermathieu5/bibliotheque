@@ -6,15 +6,19 @@ On peut y chercher une œuvre par titre, auteur, sujet ou ISBN, puis filtrer par
 
 ## Contenu du dépôt
 
-- `index.html` : la page publique, avec le catalogue intégré.
-- `couvertures/` : les planches d'images des couvertures utilisées par la page.
+- `index.html` : l'application, qui sert à la fois de page pour les élèves et de gestion.
+- `catalogue.json` : le catalogue publié pour les élèves, sans noms d'emprunteurs ni notes.
+- `couvertures/` : les images des couvertures.
+- `admin/` : raccourci vers la gestion.
 
-## Mettre le catalogue à jour
+## Gestion
 
-1. Dans l'application de gestion, ouvre **Exporter**, puis choisis **Catalogue public**.
-2. Remplace `index.html` dans ce dépôt par le fichier exporté.
-3. Laisse le dossier `couvertures/` en place. Il change seulement quand de nouvelles planches de couvertures sont créées.
+La gestion se fait en ligne, à l'adresse https://merciermathieu5.github.io/bibliotheque/admin/, avec un jeton d'accès personnel GitHub à accès précis (fine-grained). Le jeton doit avoir le droit « Contents : Read and write » sur ce dépôt et sur le dépôt privé `bibliotheque-donnees`.
 
-La page publique ne contient ni le nom des emprunteurs ni les notes internes.
+- Les fiches complètes, les notes et les prêts sont enregistrés dans le dépôt privé `bibliotheque-donnees`.
+- Le fichier `catalogue.json` est republié automatiquement après les changements, au plus une fois toutes les 5 minutes, ou tout de suite avec « Publier maintenant ».
+- Les couvertures ajoutées depuis la gestion sont déposées dans `couvertures/`.
+
+Le jeton reste dans le navigateur qui l'utilise. Il n'est jamais publié.
 
 Les couvertures proviennent du site Les libraires, d'Open Library, d'Amazon et de la Fondation Azrieli. Elles servent uniquement à reconnaître les livres de la classe.
