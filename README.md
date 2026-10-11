@@ -2,7 +2,7 @@
 
 Catalogue public de la bibliothèque de classe de M. Univers social : mangas, bandes dessinées, romans graphiques et ouvrages de référence.
 
-On peut y chercher une œuvre par titre, auteur ou ISBN, puis filtrer par type, période historique, sujet ou niveau.
+On peut y chercher une œuvre par titre, auteur, sujet ou ISBN, puis filtrer par type, période historique, lien au programme, sujet ou disponibilité.
 
 ## Contenu du dépôt
 
