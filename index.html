@@ -350,6 +350,9 @@ textarea.entree{min-height:82px;resize:vertical;line-height:1.45}
 .toast.erreur{background:var(--alerte);color:var(--surface)}
 .toast span{flex:1;min-width:0}
 .toast button{flex:none;background:transparent;border:1px solid currentColor;color:inherit;border-radius:6px;padding:4px 10px;font-weight:700}
+.source-resume{margin-top:6px!important;font-size:.84rem;color:var(--encre-2)}
+.source-resume a{color:var(--tampon);font-weight:700;text-underline-offset:3px}
+
 /* Gestion en ligne avec GitHub */
 .etat-sync{gap:8px;color:var(--encre-2)}
 .etat-sync .point{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
@@ -550,7 +553,8 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
       niveaux: niveaux || d.niveaux
     };
   }
-  var CHAMPS_OEUVRE = { titre: 300, serie: 200, tomes: 60, auteurs: 300, editeur: 150, annee: 20, isbn: 40, langue: 40, type: 60, emplacement: 120, cote: 40, resume: 2000, notes: 4000, miseEnGarde: 500 };
+  var CHAMPS_OEUVRE = { titre: 300, serie: 200, tomes: 60, auteurs: 300, editeur: 150, annee: 20, isbn: 40, langue: 40, type: 60, emplacement: 120, cote: 40, resume: 2000, resumeSource: 80, resumeLien: 500, notes: 4000, miseEnGarde: 500 };
+  function lienSur(u) { return /^https:\/\/[^\s"'<>\\]+$/.test(u || '') ? u : ''; }
   function listeTexte(v, max, lg) {
     return (Array.isArray(v) ? v : []).map(function (x) { return String(x == null ? '' : x).trim().slice(0, lg || 80); }).filter(Boolean).slice(0, max);
   }
@@ -568,6 +572,7 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
     o = isPlain(o) ? o : {};
     var w = { id: String(id || o.id || uid('o')) };
     Object.keys(CHAMPS_OEUVRE).forEach(function (k) { w[k] = String(o[k] == null ? '' : o[k]).trim().slice(0, CHAMPS_OEUVRE[k]); });
+    w.resumeLien = lienSur(w.resumeLien);
     w.periodes = uniq(listeTexte(o.periodes, 20));
     w.programme = uniq(listeTexte(o.programme, 30));
     w.sujets = uniqNorm(listeTexte(o.sujets, 15, 60));
@@ -1236,7 +1241,14 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
       .filter(function (l) { return l[1]; });
     if (lignes.length) h += '<dl class="def reglee">' + lignes.map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + esc(l[1]) + '</dd>'; }).join('') + '</dl>';
     if (w.miseEnGarde) h += '<div class="section-fiche"><div class="garde">' + icone('attention') + '<span><strong>Mise en garde :</strong> ' + esc(w.miseEnGarde) + '</span></div></div>';
-    if (w.resume) h += '<div class="section-fiche"><h3>Résumé</h3><p>' + esc(w.resume) + '</p></div>';
+    if (w.resume || w.resumeLien) {
+      /* Avec une source nommée, le résumé en découle ; sans source nommée, le lien mène seulement à la fiche du livre */
+      var nomSource = w.resumeSource || (w.resumeLien ? w.resumeLien.replace(/^https:\/\/(www\.)?/, '').split('/')[0] : '');
+      var lienSource = w.resumeLien ? '<a href="' + esc(w.resumeLien) + '" target="_blank" rel="noopener noreferrer">' + esc(nomSource) + '</a>' : esc(nomSource);
+      var mention = !nomSource ? '' : !w.resume ? 'Description complète sur ' : w.resumeSource ? 'Résumé rédigé d’après la description de ' : 'Fiche du livre sur ';
+      h += '<div class="section-fiche"><h3>Résumé</h3>' + (w.resume ? '<p>' + esc(w.resume) + '</p>' : '') +
+        (mention ? '<p class="source-resume">' + mention + lienSource + '.</p>' : '') + '</div>';
+    }
     var per = w.periodes.filter(periodeDe);
     if (per.length) h += '<div class="section-fiche"><h3>Périodes historiques</h3><div class="puces-fiche">' + per.map(function (id) { var p = periodeDe(id); return puceFiltre('periodes', id, p.label + (p.dates ? ' (' + p.dates + ')' : '')); }).join('') + '</div></div>';
     var prog = w.programme.filter(progDe);
@@ -1402,6 +1414,8 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
       champ('s2', 'f-emplacement', 'Emplacement', '<input class="entree" id="f-emplacement" maxlength="120" list="liste-emplacements" value="' + esc(w.emplacement) + '" placeholder="ex. Étagère blanche">' +
         '<datalist id="liste-emplacements">' + emplacements.map(function (x) { return '<option value="' + esc(x) + '"></option>'; }).join('') + '</datalist>') +
       champ('', 'f-resume', 'Résumé', '<textarea class="entree" id="f-resume" maxlength="2000">' + esc(w.resume) + '</textarea>') +
+      champ('s2', 'f-resume-source', 'Source du résumé', '<input class="entree" id="f-resume-source" maxlength="80" placeholder="ex. Les libraires" value="' + esc(w.resumeSource) + '">') +
+      champ('s4', 'f-resume-lien', 'Lien vers la source', '<input class="entree" id="f-resume-lien" type="url" inputmode="url" maxlength="500" placeholder="https://…" value="' + esc(w.resumeLien) + '">', 'Affiché sous le résumé. Le lien doit commencer par https://.') +
       champ('', 'f-garde', 'Mise en garde', '<input class="entree" id="f-garde" maxlength="500" placeholder="ex. Scènes de violence, à lire avec un adulte" value="' + esc(w.miseEnGarde) + '">', 'Affichée en rouge sur la fiche.') +
       champ('', 'f-notes', 'Notes pédagogiques', '<textarea class="entree" id="f-notes" maxlength="4000">' + esc(w.notes) + '</textarea>', 'Non affichées aux lecteurs ni dans le catalogue public exporté.') +
       '<label class="case champ"><input type="checkbox" id="f-verifier"' + (w.aVerifier ? ' checked' : '') + '><span>Fiche à vérifier (titre, auteurs ou classement incertains)</span></label>' +
@@ -1464,6 +1478,8 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
     w.exemplaires = Math.max(1, Math.min(999, parseInt(valeur(f, 'f-exemplaires'), 10) || 1));
     w.cote = valeur(f, 'f-cote'); w.emplacement = valeur(f, 'f-emplacement');
     w.resume = valeur(f, 'f-resume'); w.miseEnGarde = valeur(f, 'f-garde'); w.notes = valeur(f, 'f-notes');
+    w.resumeSource = valeur(f, 'f-resume-source'); w.resumeLien = valeur(f, 'f-resume-lien');
+    if (w.resumeLien && !lienSur(w.resumeLien)) { msg.className = 'indice erreur'; msg.textContent = 'Le lien vers la source doit commencer par https:// et ne contenir aucune espace.'; msg.hidden = false; $('#f-resume-lien', f).focus(); return; }
     w.aVerifier = $('#f-verifier', f).checked;
     var maintenant = new Date().toISOString();
     if (!m.existant) w.creeLe = maintenant;
@@ -1758,14 +1774,14 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
   function celluleCSV(v) { v = String(v == null ? '' : v); return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function versCSV(lignes) { return '﻿' + lignes.map(function (l) { return l.map(celluleCSV).join(';'); }).join('\r\n'); }
   function csvCatalogue() {
-    var tete = ['Titre', 'Série', 'Tomes', 'Auteurs', 'Éditeur', 'Année', 'ISBN', 'Langue', 'Type', 'Périodes', 'Programme', 'Sujets', 'Niveaux', 'Exemplaires', 'Disponibles', 'Cote', 'Emplacement', 'Résumé', 'Mise en garde'];
+    var tete = ['Titre', 'Série', 'Tomes', 'Auteurs', 'Éditeur', 'Année', 'ISBN', 'Langue', 'Type', 'Périodes', 'Programme', 'Sujets', 'Niveaux', 'Exemplaires', 'Disponibles', 'Cote', 'Emplacement', 'Résumé', 'Source du résumé', 'Lien de la source', 'Mise en garde'];
     if (peutModifier()) tete.push('Notes', 'À vérifier');
     var lignes = [tete];
     trier(Array.from(lib.oeuvres.values())).forEach(function (w) {
       var l = [w.titre, w.serie, w.tomes, w.auteurs, w.editeur, w.annee, w.isbn, w.langue, labelType(w.type), w.periodes.map(labelPeriode).filter(Boolean).join(' ; '),
         w.programme.map(function (id) { var p = progDe(id); return p ? (p.groupe ? p.groupe + ' : ' : '') + p.label : ''; }).filter(Boolean).join(' ; '),
         w.sujets.join(' ; '), w.niveaux.map(function (id) { var n = niveauDe(id); return n ? n.label : ''; }).filter(Boolean).join(' ; '),
-        w.exemplaires, dispoDe(w).disponibles, coteDe(w), w.emplacement, w.resume, w.miseEnGarde];
+        w.exemplaires, dispoDe(w).disponibles, coteDe(w), w.emplacement, w.resume, w.resumeSource, w.resumeLien, w.miseEnGarde];
       if (peutModifier()) l.push(w.notes, w.aVerifier ? 'oui' : '');
       lignes.push(l);
     });
@@ -1858,7 +1874,7 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
     type: ['type', 'genre', 'format', 'categorie'], periodes: ['periode', 'periodes', 'periode(s)', 'epoque', 'periode historique', 'periodes historiques'],
     programme: ['programme', 'lien au programme', 'liens au programme', 'realite sociale', 'realites sociales'], sujets: ['sujet', 'sujets', 'theme', 'themes', 'mots cles', 'mots-cles', 'tags'],
     niveaux: ['niveau', 'niveaux'], exemplaires: ['exemplaires', 'quantite', 'nombre', 'copies', 'qte', 'nb'], cote: ['cote'], emplacement: ['emplacement', 'rayon', 'etagere', 'localisation', 'lieu'],
-    resume: ['resume', 'description', 'synopsis'], notes: ['notes', 'note', 'commentaire', 'commentaires', 'notes pedagogiques'], miseEnGarde: ['mise en garde', 'avertissement'], aVerifier: ['a verifier']
+    resume: ['resume', 'description', 'synopsis'], resumeSource: ['source du resume', 'source'], resumeLien: ['lien de la source', 'lien', 'url'], notes: ['notes', 'note', 'commentaire', 'commentaires', 'notes pedagogiques'], miseEnGarde: ['mise en garde', 'avertissement'], aVerifier: ['a verifier']
   };
   function correspondanceColonnes(entetes) {
     var carte = {};
@@ -1897,7 +1913,7 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
       programme: morceaux(v('programme')).map(function (x) { var p = trouverDans(r.programme, x.replace(/^.*?:\s*/, ''), ['detail']); return p && p.id; }).filter(Boolean),
       sujets: morceaux(v('sujets')),
       niveaux: morceaux(v('niveaux')).map(function (x) { var n = trouverDans(r.niveaux, x, []); return n && n.id; }).filter(Boolean),
-      exemplaires: parseInt(v('exemplaires'), 10) || 1, cote: v('cote'), emplacement: v('emplacement'), resume: v('resume'), notes: v('notes'), miseEnGarde: v('miseEnGarde'),
+      exemplaires: parseInt(v('exemplaires'), 10) || 1, cote: v('cote'), emplacement: v('emplacement'), resume: v('resume'), resumeSource: v('resumeSource'), resumeLien: v('resumeLien'), notes: v('notes'), miseEnGarde: v('miseEnGarde'),
       aVerifier: /^(oui|o|x|1|vrai|true|yes)$/i.test(v('aVerifier')), creeLe: new Date().toISOString()
     }, uid('o'));
   }
@@ -1933,6 +1949,7 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
     var t = texte.trim();
     if (/\.json$/i.test(nom) || t.charAt(0) === '{') {
       var d; try { d = JSON.parse(t); } catch (e) { d = null; }
+      if (d && d.format === 'bibliotheque-univers-social-resumes' && Array.isArray(d.resumes)) return analyserResumes(m, d.resumes);
       if (!d || !Array.isArray(d.oeuvres)) return afficherApercu(m, '<p class="indice erreur">Ce fichier JSON n’est pas une sauvegarde de cette bibliothèque.</p>', false);
       var oeuvres = d.oeuvres.map(function (o) { return normaliserOeuvre(o, o && o.id); });
       var prets = (Array.isArray(d.prets) ? d.prets : []).map(function (p) { return normaliserPret(p, p && p.id); }).filter(function (p) { return p.emprunteur && p.oeuvreId; });
@@ -1957,8 +1974,42 @@ var APP_SOURCE = (document.currentScript && document.currentScript.textContent) 
       oeuvresCSV.slice(0, 6).map(function (w) { return '<tr><td>' + esc(w.titre) + (w.tomes ? ' · ' + esc(w.tomes) : '') + '</td><td>' + esc(w.auteurs) + '</td><td>' + esc(labelType(w.type)) + '</td><td>' + esc(w.periodes.map(labelPeriode).join(', ')) + '</td><td>' + esc(w.sujets.join(', ')) + '</td></tr>'; }).join('') +
       '</tbody></table></div>' + (oeuvresCSV.length > 6 ? '<p class="aide" style="margin-top:6px">Aperçu des 6 premières lignes.</p>' : ''), oeuvresCSV.length > 0);
   }
+  /* Fichier de résumés : ne touche qu’au résumé, à sa source et à son lien, fiche par fiche (identifiant, sinon ISBN) */
+  function analyserResumes(m, liste) {
+    var parIsbn = new Map();
+    lib.oeuvres.forEach(function (w) { var k = String(w.isbn || '').replace(/[^0-9X]/gi, ''); if (k) { if (!parIsbn.has(k)) parIsbn.set(k, []); parIsbn.get(k).push(w); } });
+    var vides = [], remplacer = [], introuvables = 0, identiques = 0, vus = {};
+    liste.forEach(function (r) {
+      if (!isPlain(r) || !String(r.resume || '').trim()) return;
+      var cibles = r.id && lib.oeuvres.has(r.id) ? [lib.oeuvres.get(r.id)] : (parIsbn.get(String(r.isbn || '').replace(/[^0-9X]/gi, '')) || []);
+      if (!cibles.length) { introuvables++; return; }
+      cibles.forEach(function (w) {
+        if (vus[w.id]) return; vus[w.id] = 1;
+        var x = normaliserOeuvre(Object.assign(clone(w), { resume: r.resume, resumeSource: r.resumeSource, resumeLien: r.resumeLien }), w.id);
+        if (x.resume === w.resume && x.resumeSource === w.resumeSource && x.resumeLien === w.resumeLien) { identiques++; return; }
+        x.modifieLe = new Date().toISOString();
+        (w.resume ? remplacer : vides).push(x);
+      });
+    });
+    m.plan = { type: 'resumes', vides: vides, remplacer: remplacer, oeuvres: vides };
+    var apercu = vides.concat(remplacer).slice(0, 5);
+    afficherApercu(m, '<p class="indice info">' + plur(vides.length + remplacer.length, 'résumé à ajouter', 'résumés à ajouter') +
+      (identiques ? ', ' + plur(identiques, 'déjà à jour', 'déjà à jour') : '') + (introuvables ? ', ' + plur(introuvables, 'livre absent du catalogue', 'livres absents du catalogue') : '') +
+      '. Seuls le résumé, sa source et son lien changent : le reste des fiches n’est pas touché.</p>' +
+      (remplacer.length ? '<label class="case" style="margin-top:10px"><input type="checkbox" id="f-remplacer-resumes"><span>Remplacer aussi ' + plur(remplacer.length, 'résumé déjà rédigé', 'résumés déjà rédigés') + '</span></label>' : '') +
+      (apercu.length ? '<div class="revue-wrap"><table class="revue"><thead><tr><th>Titre</th><th>Résumé</th><th>Source</th></tr></thead><tbody>' + apercu.map(function (w) {
+        return '<tr><td>' + esc(w.titre) + (w.tomes ? ' · ' + esc(w.tomes) : '') + '</td><td>' + esc(w.resume.length > 160 ? w.resume.slice(0, 157) + '…' : w.resume) + '</td><td>' + esc(w.resumeSource) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : ''), vides.length + remplacer.length > 0);
+  }
   function executerImport(m) {
     var plan = m.plan; if (!plan) return;
+    if (plan.type === 'resumes') {
+      var choix = plan.vides.concat($('#f-remplacer-resumes', m.form) && $('#f-remplacer-resumes', m.form).checked ? plan.remplacer : []);
+      if (!choix.length) { toast('Rien de nouveau à importer.'); fermerModale(m); return; }
+      occuper(m, true, 'Importation…');
+      enregistrerOeuvres(choix).then(function () { fermerModale(m); toast(plur(choix.length, 'résumé ajouté', 'résumés ajoutés')); }).catch(function (e) { occuper(m, false); echec(e); });
+      return;
+    }
     var oeuvres = plan.oeuvres;
     if (plan.type === 'csv' && $('#f-sans-doublons', m.form) && $('#f-sans-doublons', m.form).checked) {
       var cles = new Set(Array.from(lib.oeuvres.values()).map(function (w) { return norm(w.titre) + '|' + norm(w.tomes); }));
